@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getCountryFlag } from '../utils/countryFlags';
 
 const BRACKET_STRUCTURE = {
@@ -27,8 +27,18 @@ const BRACKET_STRUCTURE = {
   final: [{ id: 'final', team1: 'Por definir', team2: 'Por definir' }],
 };
 
+const ROUNDS = [
+  { id: 'round32', label: '16vos', short: '16vos' },
+  { id: 'round16', label: '8vos', short: '8vos' },
+  { id: 'quarterfinals', label: '4tos', short: '4tos' },
+  { id: 'semifinals', label: 'semi', short: 'semi' },
+  { id: 'thirdPlace', label: '3er', short: '3er' },
+  { id: 'final', label: 'final', short: 'final' },
+];
+
 export default function Bracket({ bracket }) {
   const [mergedBracket, setMergedBracket] = useState(BRACKET_STRUCTURE);
+  const [selectedRound, setSelectedRound] = useState('round32');
 
   useEffect(() => {
     const merged = {
@@ -108,9 +118,50 @@ export default function Bracket({ bracket }) {
     );
   };
 
+  const getRoundData = (roundId) => {
+    switch (roundId) {
+      case 'round32':
+        return mergedBracket.round32;
+      case 'round16':
+        return mergedBracket.round16;
+      case 'quarterfinals':
+        return mergedBracket.quarterfinals;
+      case 'semifinals':
+        return mergedBracket.semifinals;
+      case 'thirdPlace':
+        return mergedBracket.thirdPlace;
+      case 'final':
+        return mergedBracket.final;
+      default:
+        return [];
+    }
+  };
+
+  const selectedRoundLabel = ROUNDS.find(r => r.id === selectedRound)?.label || '';
+
   return (
     <section className="bracket-section">
       <h2>Eliminatorias al momento</h2>
+
+      {/* Tabs para móvil */}
+      <div className="bracket-tabs-mobile">
+        {ROUNDS.map((round) => (
+          <button
+            key={round.id}
+            className={`bracket-tab ${selectedRound === round.id ? 'active' : ''}`}
+            onClick={() => setSelectedRound(round.id)}
+          >
+            {round.short}
+          </button>
+        ))}
+      </div>
+
+      {/* Vista móvil: una ronda a la vez */}
+      <div className="bracket-mobile-view">
+        {renderColumn(selectedRoundLabel, getRoundData(selectedRound), selectedRound)}
+      </div>
+
+      {/* Vista desktop: todas las rondas */}
       <div className="bracket-tree-container">
         {renderColumn('16vos de Final', mergedBracket.round32, 'round32')}
         {renderColumn('8vos de Final', mergedBracket.round16, 'round16')}

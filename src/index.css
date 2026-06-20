@@ -622,6 +622,47 @@ td.dg.neg {
   margin-right: 6px;
 }
 
+/* Vista móvil del bracket */
+.bracket-mobile-view {
+  display: none;
+}
+
+.bracket-tabs-mobile {
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.bracket-tab {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 100px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  font-weight: 500;
+  flex: 1;
+  min-width: 50px;
+  text-align: center;
+}
+
+.bracket-tab:hover {
+  border-color: var(--gold);
+  color: var(--text);
+}
+
+.bracket-tab.active {
+  background: var(--gold);
+  color: #ffffff;
+  border-color: var(--gold);
+  font-weight: 700;
+}
+
 /* Optimización para tabletas */
 @media (max-width: 1024px) {
   .bracket-section h2 {
@@ -703,47 +744,90 @@ td.dg.neg {
 
 /* Optimización para móviles grandes */
 @media (max-width: 600px) {
+  .bracket-tabs-mobile {
+    display: flex;
+    padding: 0 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .bracket-mobile-view {
+    display: flex;
+    justify-content: center;
+    padding: 0 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .bracket-tree-container {
+    display: none;
+  }
+
   .bracket-section {
     margin-top: 1rem;
     margin-bottom: 1rem;
+    margin-left: -1.1rem;
+    margin-right: -1.1rem;
+    padding: 0;
   }
 
   .bracket-section h2 {
     font-size: 1rem;
     margin-bottom: 0.6rem;
+    padding: 0 1.1rem;
   }
 
-  .bracket-tree-container {
+  .bracket-mobile-view .bracket-column {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 100%;
+    gap: 0.5rem;
+  }
+
+  .bracket-mobile-view .column-header {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.5rem;
+    border-bottom-width: 2px;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .bracket-mobile-view .column-matches {
     gap: 0.6rem;
-    padding: 0.6rem;
-    min-height: 550px;
-    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
   }
 
-  .bracket-column {
-    flex: 0 0 110px;
-    gap: 0.3rem;
-  }
-
-  .column-header {
-    font-size: 0.6rem;
-    padding: 0.3rem 0.4rem;
-    margin-bottom: 0.35rem;
-    border-bottom-width: 1.5px;
-  }
-
-  .column-matches {
-    gap: 0.7rem;
-  }
-
-  .match-wrapper {
+  .bracket-mobile-view .match-wrapper {
     min-height: 50px;
   }
 
-  .bracket-matchup {
-    border-width: 1.2px;
+  .bracket-mobile-view .bracket-matchup {
+    border-width: 1px;
     border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+  }
+
+  .bracket-mobile-view .bracket-team-row {
+    padding: 0.45rem 0.6rem;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.15;
+  }
+
+  .bracket-mobile-view .team-name {
+    font-size: 0.75rem;
+  }
+
+  .bracket-mobile-view .team-score {
+    font-size: 0.8rem;
+    min-width: 20px;
+  }
+
+  .bracket-mobile-view .team-flag {
+    font-size: 1rem;
+    margin-right: 0.4rem;
   }
 
   .bracket-team-row {
@@ -768,8 +852,62 @@ td.dg.neg {
   }
 }
 
+/* Vista móvil del bracket */
+.bracket-mobile-view {
+  display: none;
+}
+
+.bracket-tabs-mobile {
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.bracket-tab {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 100px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  font-weight: 500;
+  flex: 1;
+  min-width: 50px;
+  text-align: center;
+}
+
+.bracket-tab:hover {
+  border-color: var(--gold);
+  color: var(--text);
+}
+
+.bracket-tab.active {
+  background: var(--gold);
+  color: #ffffff;
+  border-color: var(--gold);
+  font-weight: 700;
+}
+
 /* Optimización para móviles pequeños */
 @media (max-width: 480px) {
+  .bracket-tabs-mobile {
+    display: flex;
+  }
+
+  .bracket-mobile-view {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .bracket-tree-container {
+    display: none;
+  }
   .bracket-section {
     margin-top: 0.75rem;
     margin-bottom: 1.5rem;
