@@ -4,6 +4,7 @@ import Hero from './components/Hero';
 import Legend from './components/Legend';
 import FilterBar from './components/FilterBar';
 import GroupCard from './components/GroupCard';
+import Bracket from './components/Bracket';
 import Note from './components/Note';
 import Footer from './components/Footer';
 
@@ -11,6 +12,23 @@ const GROUP_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L
 const SCOREBOARD_URL =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=300';
 const REFRESH_MS = 5 * 60 * 1000;
+
+function getCurrentPhase() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+
+  if (month < 6 || (month === 6 && day < 11)) return 'Próximamente';
+  if (month === 6 && day <= 27) return 'Fase de grupos';
+  if ((month === 6 && day >= 28) || (month === 7 && day <= 3)) return '16vos de final';
+  if (month === 7 && day <= 7) return '8vos de final';
+  if (month === 7 && day <= 11) return 'Cuartos de final';
+  if (month === 7 && (day === 14 || day === 15)) return 'Semifinales';
+  if (month === 7 && day === 18) return 'Tercer lugar';
+  if (month === 7 && day === 19) return 'Final';
+  return 'Completado';
+}
 
 const FALLBACK = {
   A: [
@@ -161,11 +179,127 @@ function fillMissingGroups(computed) {
   return computed;
 }
 
+function fillQualifiedTeams(bracket, standings) {
+  const filled = JSON.parse(JSON.stringify(bracket));
+
+  if (!filled.round32) filled.round32 = [];
+
+  const getGroupTeams = (letter) => {
+    const group = standings[letter] || [];
+    return {
+      first: group[0] ? group[0][0] : 'Por definir',
+      second: group[1] ? group[1][0] : 'Por definir',
+    };
+  };
+
+  const matchups = [
+    { pos: 0, team1Group: 'A', team1Pos: 1, team2Group: 'B', team2Pos: 2 },
+    { pos: 1, team1Group: 'C', team1Pos: 1, team2Group: 'D', team2Pos: 2 },
+    { pos: 2, team1Group: 'E', team1Pos: 1, team2Group: 'F', team2Pos: 2 },
+    { pos: 3, team1Group: 'G', team1Pos: 1, team2Group: 'H', team2Pos: 2 },
+    { pos: 4, team1Group: 'I', team1Pos: 1, team2Group: 'J', team2Pos: 2 },
+    { pos: 5, team1Group: 'K', team1Pos: 1, team2Group: 'L', team2Pos: 2 },
+    { pos: 6, team1Group: 'B', team1Pos: 2, team2Group: 'A', team2Pos: 1 },
+    { pos: 7, team1Group: 'D', team1Pos: 2, team2Group: 'C', team2Pos: 1 },
+    { pos: 8, team1Group: 'F', team1Pos: 2, team2Group: 'E', team2Pos: 1 },
+    { pos: 9, team1Group: 'H', team1Pos: 2, team2Group: 'G', team2Pos: 1 },
+    { pos: 10, team1Group: 'J', team1Pos: 2, team2Group: 'I', team2Pos: 1 },
+    { pos: 11, team1Group: 'L', team1Pos: 2, team2Group: 'K', team2Pos: 1 },
+    { pos: 12, team1Group: 'A', team1Pos: 2, team2Group: 'B', team2Pos: 1 },
+    { pos: 13, team1Group: 'C', team1Pos: 2, team2Group: 'D', team2Pos: 1 },
+    { pos: 14, team1Group: 'E', team1Pos: 2, team2Group: 'F', team2Pos: 1 },
+    { pos: 15, team1Group: 'G', team1Pos: 2, team2Group: 'H', team2Pos: 1 },
+  ];
+
+  for (const matchup of matchups) {
+    const team1Groups = getGroupTeams(matchup.team1Group);
+    const team2Groups = getGroupTeams(matchup.team2Group);
+
+    const team1 = matchup.team1Pos === 1 ? team1Groups.first : team1Groups.second;
+    const team2 = matchup.team2Pos === 1 ? team2Groups.first : team2Groups.second;
+
+    if (!filled.round32[matchup.pos]) {
+      filled.round32[matchup.pos] = {};
+    }
+
+    if (!filled.round32[matchup.pos].team1 || filled.round32[matchup.pos].team1 === 'Por definir') {
+      filled.round32[matchup.pos].team1 = team1;
+    }
+    if (!filled.round32[matchup.pos].team2 || filled.round32[matchup.pos].team2 === 'Por definir') {
+      filled.round32[matchup.pos].team2 = team2;
+    }
+  }
+
+  return filled;
+}
+
+function computeBracketFromEvents(events) {
+  const bracket = {
+    round32: [],
+    round16: [],
+    quarterfinals: [],
+    semifinals: [],
+    final: [],
+  };
+
+  const phaseMap = {
+    'Round of 32': 'round32',
+    '16vos': 'round32',
+    'Round of 16': 'round16',
+    '8vos': 'round16',
+    'Quarterfinals': 'quarterfinals',
+    'Cuartos': 'quarterfinals',
+    'Semifinals': 'semifinals',
+    'Semifinal': 'semifinals',
+    'Final': 'final',
+  };
+
+  for (const ev of events) {
+    const comp = ev.competitions && ev.competitions[0];
+    if (!comp) continue;
+
+    const note = comp.altGameNote || '';
+    let phaseKey = null;
+
+    for (const [key, value] of Object.entries(phaseMap)) {
+      if (note.includes(key)) {
+        phaseKey = value;
+        break;
+      }
+    }
+
+    if (!phaseKey) continue;
+
+    const completed = comp.status && comp.status.type && comp.status.type.completed;
+    const [a, b] = comp.competitors || [];
+    if (!a || !b) continue;
+
+    const sa = parseInt(a.score, 10);
+    const sb = parseInt(b.score, 10);
+
+    const match = {
+      team1: a.team.displayName,
+      team2: b.team.displayName,
+      score1: !isNaN(sa) ? sa : undefined,
+      score2: !isNaN(sb) ? sb : undefined,
+      winner: completed && !isNaN(sa) && !isNaN(sb) ? (sa > sb ? 1 : sb > sa ? 2 : 0) : null,
+    };
+
+    bracket[phaseKey].push(match);
+  }
+
+  return bracket;
+}
+
 export default function App() {
   const [standingsData, setStandingsData] = useState(FALLBACK);
+  const [bracketData, setBracketData] = useState({});
   const [isLive, setIsLive] = useState(false);
   const [timestamp, setTimestamp] = useState('');
   const [currentFilter, setCurrentFilter] = useState('all');
+  const [phase, setPhase] = useState(getCurrentPhase());
+  const initialView = getCurrentPhase() === 'Fase de grupos' ? 'groups' : 'bracket';
+  const [viewMode, setViewMode] = useState(initialView);
 
   useEffect(() => {
     const loadLiveStandings = async () => {
@@ -190,6 +324,7 @@ export default function App() {
         setIsLive(false);
         setTimestamp('');
       }
+      setPhase(getCurrentPhase());
     };
 
     loadLiveStandings();
@@ -197,21 +332,56 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const loadBracket = async () => {
+      try {
+        const res = await fetch(SCOREBOARD_URL, { cache: 'no-store' });
+        if (!res.ok) throw new Error('http ' + res.status);
+        const json = await res.json();
+        const computed = computeBracketFromEvents(json.events || []);
+
+        // Llenar equipos clasificados desde grupos
+        const qualifiedBracket = fillQualifiedTeams(computed, standingsData);
+        setBracketData(qualifiedBracket);
+      } catch (err) {
+        // Silently fail for bracket data
+      }
+    };
+
+    loadBracket();
+    const interval = setInterval(loadBracket, REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [standingsData]);
+
+  useEffect(() => {
+    // Cambiar automáticamente a vista de eliminatorias cuando termina la fase de grupos
+    if (phase !== 'Fase de grupos' && phase !== 'Próximamente') {
+      setViewMode('bracket');
+    } else if (phase === 'Fase de grupos') {
+      setViewMode('groups');
+    }
+  }, [phase]);
+
   const visibleGroups = currentFilter === 'all' ? GROUP_LETTERS : [currentFilter];
+  const isEliminatory = ['16vos de final', '8vos de final', 'Cuartos de final', 'Semifinales', 'Tercer lugar', 'Final'].includes(phase);
 
   return (
     <>
-      <Header isLive={isLive} />
+      <Header isLive={isLive} viewMode={viewMode} onViewChange={setViewMode} />
       <div className="wrap">
-        <Hero timestamp={timestamp} isLive={isLive} />
-        <Legend />
-        <FilterBar currentFilter={currentFilter} onFilterChange={setCurrentFilter} />
-        <section className="groups">
-          {visibleGroups.map((letter) => (
-            <GroupCard key={letter} letter={letter} teams={standingsData[letter] || []} />
-          ))}
-        </section>
-        <Note />
+        <Hero timestamp={timestamp} isLive={isLive} phase={phase} />
+        {viewMode === 'groups' && (
+          <>
+            <Legend />
+            <FilterBar currentFilter={currentFilter} onFilterChange={setCurrentFilter} />
+            <section className="groups">
+              {visibleGroups.map((letter) => (
+                <GroupCard key={letter} letter={letter} teams={standingsData[letter] || []} />
+              ))}
+            </section>
+          </>
+        )}
+        {viewMode === 'bracket' && <Bracket bracket={bracketData} />}
         <Footer />
       </div>
     </>

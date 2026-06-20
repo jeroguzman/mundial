@@ -1,8 +1,8 @@
 export default function Footer() {
   return (
     <footer>
-      <span>Datos: ESPN API (no oficial) · se actualiza cada 5 min</span>
-      <span>Canadá · México · Estados Unidos</span>
+      <span>Datos: ESPN API</span>
+      <span>Creado por Jero Guzmán</span>
     </footer>
   );
 }

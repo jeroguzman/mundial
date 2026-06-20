@@ -1,15 +1,15 @@
-export default function Hero({ timestamp, isLive }) {
+export default function Hero({ timestamp, isLive, phase }) {
   const eyebrowText = isLive
-    ? `Fase de grupos · En vivo · ${timestamp}`
-    : 'Fase de grupos · Sin conexión · mostrando último dato guardado';
+    ? `${phase} · En vivo · ${timestamp}`
+    : `${phase} · Sin conexión · mostrando último dato guardado`;
 
   return (
     <section className="hero">
       <div className="eyebrow">{eyebrowText}</div>
       <h1>
-        Tabla de
+        Estadísticas
         <br />
-        posiciones<span className="accent">.</span>
+        Mundial 2026
       </h1>
       <p className="sub">
         Los 12 grupos del torneo más grande de la historia, con 48 selecciones. Clasifican el
