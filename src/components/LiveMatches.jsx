@@ -15,8 +15,8 @@ function extractLiveMatches(events) {
     const status = comp.status && comp.status.type;
     if (!status) continue;
 
-    // Detectar partidos en vivo: primer tiempo, segundo tiempo, o "in progress"
-    const isLive = status.name && (
+    // Detectar partidos en vivo o en descanso
+    const isInProgress = status.name && (
       status.name.includes('FIRST_HALF') ||
       status.name.includes('SECOND_HALF') ||
       status.name.toLowerCase().includes('in progress') ||
@@ -24,7 +24,14 @@ function extractLiveMatches(events) {
       status.name.toLowerCase().includes('live')
     );
 
-    if (!isLive) continue;
+    const isHalftime = status.name && (
+      status.name.includes('HALFTIME') ||
+      status.name.includes('HALF_TIME') ||
+      status.name.toLowerCase().includes('halftime') ||
+      status.name.toLowerCase().includes('half-time')
+    );
+
+    if (!isInProgress && !isHalftime) continue;
 
     const [a, b] = comp.competitors || [];
     if (!a || !b) continue;
@@ -36,12 +43,18 @@ function extractLiveMatches(events) {
 
     // Extraer el minuto del detalle del estado
     let minute = status.detail || '...';
-    if (!minute || minute === 'null') {
+
+    // Reemplazar códigos cortos
+    if (minute === 'HT' || minute === 'ht') {
+      minute = 'Medio Tiempo';
+    } else if (!minute || minute === 'null' || minute === '...') {
       // Mostrar el periodo si no hay detalle de minuto
       if (status.name.includes('FIRST_HALF')) {
         minute = 'Primer tiempo';
       } else if (status.name.includes('SECOND_HALF')) {
         minute = 'Segundo tiempo';
+      } else if (isHalftime) {
+        minute = 'Medio Tiempo';
       } else {
         minute = 'En vivo';
       }
@@ -54,6 +67,7 @@ function extractLiveMatches(events) {
       score1: sa,
       score2: sb,
       minute: minute,
+      isStreaming: isInProgress, // true si hay transmisión, false si está en descanso
       startTime: event.date,
     });
   }
@@ -124,8 +138,10 @@ export default function LiveMatches() {
           const flag1 = getCountryFlag(match.team1);
           const flag2 = getCountryFlag(match.team2);
           return (
-            <div key={match.id} className="live-match-card">
-              <div className="live-badge">EN VIVO</div>
+            <div key={match.id} className={`live-match-card ${!match.isStreaming ? 'halftime' : ''}`}>
+              <div className={`live-badge ${!match.isStreaming ? 'halftime-badge' : ''}`}>
+                {match.isStreaming ? 'EN VIVO' : 'DESCANSO'}
+              </div>
 
               <div className="match-teams">
                 <div className="match-team">
@@ -148,12 +164,14 @@ export default function LiveMatches() {
                 </div>
               </div>
 
-              <button
-                className="watch-live-btn"
-                onClick={() => setSelectedMatch(match)}
-              >
-                Ver en vivo
-              </button>
+              {match.isStreaming && (
+                <button
+                  className="watch-live-btn"
+                  onClick={() => setSelectedMatch(match)}
+                >
+                  Ver en vivo
+                </button>
+              )}
             </div>
           );
         })}

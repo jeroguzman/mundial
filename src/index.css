@@ -1137,6 +1137,22 @@ td.dg.neg {
   flex-shrink: 0;
 }
 
+.live-match-card.halftime {
+  opacity: 0.8;
+  border-color: rgba(51, 51, 51, 0.5);
+  background: linear-gradient(135deg, rgba(102, 102, 102, 0.08) 0%, rgba(102, 102, 102, 0.02) 100%);
+}
+
+.live-badge.halftime-badge {
+  background: rgba(102, 102, 102, 0.2);
+  color: var(--text-dim);
+}
+
+.live-badge.halftime-badge::before {
+  background: var(--text-dim);
+  animation: none;
+}
+
 .match-teams {
   display: flex;
   align-items: center;
