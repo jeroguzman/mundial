@@ -42,7 +42,7 @@ function extractLiveMatches(events) {
     if (!a || !b) continue;
 
     // Determinar estado del partido
-    const isScheduled = status.name === 'STATUS_SCHEDULED';
+    const isScheduled = status.name === 'STATUS_SCHEDULED' || status.name === 'STATUS_DELAYED';
     const isInProgress = status.name && (
       status.name.includes('FIRST_HALF') ||
       status.name.includes('SECOND_HALF') ||
@@ -50,7 +50,9 @@ function extractLiveMatches(events) {
     );
     const isHalftime = status.name && (
       status.name.includes('HALFTIME') ||
-      status.name.includes('HALF_TIME')
+      status.name.includes('HALF_TIME') ||
+      status.name.includes('halftime') ||
+      status.name.toLowerCase().includes('halftime')
     );
     const isCompleted = status.name === 'STATUS_FULL_TIME';
 
@@ -65,7 +67,7 @@ function extractLiveMatches(events) {
     let isStreaming = false;
 
     if (isScheduled) {
-      minute = getLocalTime(event.date);
+      minute = status.name === 'STATUS_DELAYED' ? 'Retrasado' : getLocalTime(event.date);
     } else if (isInProgress) {
       minute = status.detail || 'En vivo';
       isStreaming = true;
