@@ -5,74 +5,90 @@ import LiveStreamModal from './LiveStreamModal';
 const SCOREBOARD_URL =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=300';
 
+function getLocalTime(isoDate) {
+  if (!isoDate) return '';
+  const date = new Date(isoDate);
+  return date.toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function isToday(isoDate) {
+  if (!isoDate) return false;
+  const date = new Date(isoDate);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
+
 function extractLiveMatches(events) {
-  const liveMatches = [];
+  const todayMatches = [];
 
   for (const event of events || []) {
+    // Solo mostrar partidos de hoy
+    if (!isToday(event.date)) continue;
+
     const comp = event.competitions && event.competitions[0];
     if (!comp) continue;
 
     const status = comp.status && comp.status.type;
     if (!status) continue;
 
-    // Detectar partidos en vivo o en descanso
-    const isInProgress = status.name && (
-      status.name.includes('FIRST_HALF') ||
-      status.name.includes('SECOND_HALF') ||
-      status.name.toLowerCase().includes('in progress') ||
-      status.name.toLowerCase().includes('inprogress') ||
-      status.name.toLowerCase().includes('live')
-    );
-
-    const isHalftime = status.name && (
-      status.name.includes('HALFTIME') ||
-      status.name.includes('HALF_TIME') ||
-      status.name.toLowerCase().includes('halftime') ||
-      status.name.toLowerCase().includes('half-time')
-    );
-
-    if (!isInProgress && !isHalftime) continue;
-
     const [a, b] = comp.competitors || [];
     if (!a || !b) continue;
 
+    // Determinar estado del partido
+    const isScheduled = status.name === 'STATUS_SCHEDULED';
+    const isInProgress = status.name && (
+      status.name.includes('FIRST_HALF') ||
+      status.name.includes('SECOND_HALF') ||
+      status.name.toLowerCase().includes('in progress')
+    );
+    const isHalftime = status.name && (
+      status.name.includes('HALFTIME') ||
+      status.name.includes('HALF_TIME')
+    );
+    const isCompleted = status.name === 'STATUS_FULL_TIME';
+
     const sa = parseInt(a.score, 10);
     const sb = parseInt(b.score, 10);
+    const hasScore = !isNaN(sa) && !isNaN(sb);
 
-    if (isNaN(sa) || isNaN(sb)) continue;
+    if (!isScheduled && !isInProgress && !isHalftime && !isCompleted) continue;
 
-    // Extraer el minuto del detalle del estado
-    let minute = status.detail || '...';
+    // Extraer información de tiempo
+    let minute = '';
+    let isStreaming = false;
 
-    // Reemplazar códigos cortos
-    if (minute === 'HT' || minute === 'ht') {
-      minute = 'Medio Tiempo';
-    } else if (!minute || minute === 'null' || minute === '...') {
-      // Mostrar el periodo si no hay detalle de minuto
-      if (status.name.includes('FIRST_HALF')) {
-        minute = 'Primer tiempo';
-      } else if (status.name.includes('SECOND_HALF')) {
-        minute = 'Segundo tiempo';
-      } else if (isHalftime) {
-        minute = 'Medio Tiempo';
-      } else {
-        minute = 'En vivo';
-      }
+    if (isScheduled) {
+      minute = getLocalTime(event.date);
+    } else if (isInProgress) {
+      minute = status.detail || 'En vivo';
+      isStreaming = true;
+    } else if (isHalftime) {
+      minute = status.detail === 'HT' || status.detail === 'ht' ? 'Medio Tiempo' : (status.detail || 'Medio Tiempo');
+    } else if (isCompleted) {
+      minute = 'Finalizado';
     }
 
-    liveMatches.push({
+    todayMatches.push({
       id: event.id,
       team1: a.team.displayName,
       team2: b.team.displayName,
-      score1: sa,
-      score2: sb,
+      score1: hasScore ? sa : undefined,
+      score2: hasScore ? sb : undefined,
       minute: minute,
-      isStreaming: isInProgress, // true si hay transmisión, false si está en descanso
+      status: isScheduled ? 'scheduled' : isInProgress ? 'live' : isHalftime ? 'halftime' : 'completed',
+      isStreaming: isStreaming,
       startTime: event.date,
     });
   }
 
-  return liveMatches;
+  return todayMatches;
 }
 
 export default function LiveMatches() {
@@ -87,8 +103,8 @@ export default function LiveMatches() {
         const res = await fetch(SCOREBOARD_URL, { cache: 'no-store' });
         if (!res.ok) throw new Error('http ' + res.status);
         const json = await res.json();
-        const live = extractLiveMatches(json.events || []);
-        setMatches(live);
+        const matches = extractLiveMatches(json.events || []);
+        setMatches(matches);
 
         const now = new Date();
         const stamp = now.toLocaleString('es-MX', {
@@ -137,10 +153,12 @@ export default function LiveMatches() {
         {matches.map((match) => {
           const flag1 = getCountryFlag(match.team1);
           const flag2 = getCountryFlag(match.team2);
+          const badgeText = match.status === 'live' ? 'EN VIVO' : match.status === 'halftime' ? 'DESCANSO' : match.status === 'completed' ? 'FINALIZADO' : 'PRÓXIMO';
+
           return (
-            <div key={match.id} className={`live-match-card ${!match.isStreaming ? 'halftime' : ''}`}>
-              <div className={`live-badge ${!match.isStreaming ? 'halftime-badge' : ''}`}>
-                {match.isStreaming ? 'EN VIVO' : 'DESCANSO'}
+            <div key={match.id} className={`live-match-card ${match.status}`}>
+              <div className={`live-badge badge-${match.status}`}>
+                {badgeText}
               </div>
 
               <div className="match-teams">
@@ -151,9 +169,9 @@ export default function LiveMatches() {
 
                 <div className="match-score">
                   <div className="score-display">
-                    <span className="goal">{match.score1}</span>
+                    <span className="goal">{match.score1 !== undefined ? match.score1 : '—'}</span>
                     <span className="separator">-</span>
-                    <span className="goal">{match.score2}</span>
+                    <span className="goal">{match.score2 !== undefined ? match.score2 : '—'}</span>
                   </div>
                   <div className="match-minute">{match.minute}</div>
                 </div>
