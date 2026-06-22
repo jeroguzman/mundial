@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
+import LiveMatches from './components/LiveMatches';
 import Legend from './components/Legend';
 import FilterBar from './components/FilterBar';
 import GroupCard from './components/GroupCard';
@@ -370,6 +371,7 @@ export default function App() {
       <Header isLive={isLive} viewMode={viewMode} onViewChange={setViewMode} />
       <div className="wrap">
         <Hero timestamp={timestamp} isLive={isLive} phase={phase} />
+        <LiveMatches />
         {viewMode === 'groups' && (
           <>
             <Legend />
