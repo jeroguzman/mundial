@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCountryFlag } from '../utils/countryFlags';
+import { getTeamNameES } from '../utils/teamNames';
 import LiveStreamModal from './LiveStreamModal';
 
 const SCOREBOARD_URL =
@@ -23,6 +24,53 @@ function isToday(isoDate) {
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate()
   );
+}
+
+function extractGoalsAndCards(details, team1Id, team2Id) {
+  const goals = [];
+  const cards = [];
+
+  const getLastName = (fullName) => {
+    if (!fullName) return 'Gol';
+    const parts = fullName.trim().split(' ');
+    return parts[parts.length - 1];
+  };
+
+  for (const detail of details || []) {
+    if (!detail.type) continue;
+
+    const athlete = detail.athletesInvolved?.[0];
+    const teamId = detail.team?.id;
+    const lastName = getLastName(athlete?.displayName);
+
+    if (detail.scoringPlay) {
+      goals.push({
+        minute: detail.clock?.displayValue || '',
+        player: lastName,
+        teamId: teamId,
+      });
+    }
+
+    if (detail.yellowCard) {
+      cards.push({
+        minute: detail.clock?.displayValue || '',
+        player: lastName,
+        card: 'yellow',
+        teamId: teamId,
+      });
+    }
+
+    if (detail.redCard) {
+      cards.push({
+        minute: detail.clock?.displayValue || '',
+        player: lastName,
+        card: 'red',
+        teamId: teamId,
+      });
+    }
+  }
+
+  return { goals, cards };
 }
 
 function extractLiveMatches(events) {
@@ -77,16 +125,22 @@ function extractLiveMatches(events) {
       minute = 'Finalizado';
     }
 
+    const { goals, cards } = extractGoalsAndCards(comp.details, a.team.id, b.team.id);
+
     todayMatches.push({
       id: event.id,
-      team1: a.team.displayName,
-      team2: b.team.displayName,
+      team1: getTeamNameES(a.team.displayName),
+      team2: getTeamNameES(b.team.displayName),
+      team1Id: a.team.id,
+      team2Id: b.team.id,
       score1: hasScore ? sa : undefined,
       score2: hasScore ? sb : undefined,
       minute: minute,
       status: isScheduled ? 'scheduled' : isInProgress ? 'live' : isHalftime ? 'halftime' : 'completed',
       isStreaming: isStreaming,
       startTime: event.date,
+      goals,
+      cards,
     });
   }
 
@@ -98,6 +152,7 @@ export default function LiveMatches() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState('');
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatchDetails, setSelectedMatchDetails] = useState(null);
 
   useEffect(() => {
     const loadLiveMatches = async () => {
@@ -158,7 +213,12 @@ export default function LiveMatches() {
           const badgeText = match.status === 'live' ? 'EN VIVO' : match.status === 'halftime' ? 'DESCANSO' : match.status === 'completed' ? 'FINALIZADO' : 'PRÓXIMO';
 
           return (
-            <div key={match.id} className={`live-match-card ${match.status}`}>
+            <div
+              key={match.id}
+              className={`live-match-card ${match.status}`}
+              onClick={() => setSelectedMatchDetails(match)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className={`live-badge badge-${match.status}`}>
                 {badgeText}
               </div>
@@ -170,11 +230,17 @@ export default function LiveMatches() {
                 </div>
 
                 <div className="match-score">
-                  <div className="score-display">
-                    <span className="goal">{match.score1 !== undefined ? match.score1 : '—'}</span>
-                    <span className="separator">-</span>
-                    <span className="goal">{match.score2 !== undefined ? match.score2 : '—'}</span>
-                  </div>
+                  {match.status === 'scheduled' ? (
+                    <div className="score-display vs-display">
+                      <span className="vs-text">VS</span>
+                    </div>
+                  ) : (
+                    <div className="score-display">
+                      <span className="goal">{match.score1 !== undefined ? match.score1 : '—'}</span>
+                      <span className="separator">-</span>
+                      <span className="goal">{match.score2 !== undefined ? match.score2 : '—'}</span>
+                    </div>
+                  )}
                   <div className="match-minute">{match.minute}</div>
                 </div>
 
@@ -187,7 +253,10 @@ export default function LiveMatches() {
               {match.isStreaming && (
                 <button
                   className="watch-live-btn"
-                  onClick={() => setSelectedMatch(match)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMatch(match);
+                  }}
                 >
                   Ver en vivo
                 </button>
@@ -196,6 +265,120 @@ export default function LiveMatches() {
           );
         })}
       </div>
+
+      {selectedMatchDetails && (
+        <div className="match-details-modal-overlay" onClick={() => setSelectedMatchDetails(null)}>
+          <div
+            className="match-details-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="modal-close-btn"
+              onClick={() => setSelectedMatchDetails(null)}
+            >
+              ✕
+            </button>
+
+            <div className="match-details-header">
+              <div className="details-team">
+                <span className="team-flag">{getCountryFlag(selectedMatchDetails.team1)}</span>
+                <span className="team-name">{selectedMatchDetails.team1}</span>
+              </div>
+
+              <div className="details-score">
+                {selectedMatchDetails.status === 'scheduled' ? (
+                  <span className="vs-text">VS</span>
+                ) : (
+                  <>
+                    <span className="score">{selectedMatchDetails.score1 !== undefined ? selectedMatchDetails.score1 : '—'}</span>
+                    <span className="separator">-</span>
+                    <span className="score">{selectedMatchDetails.score2 !== undefined ? selectedMatchDetails.score2 : '—'}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="details-team details-team-right">
+                <span className="team-name">{selectedMatchDetails.team2}</span>
+                <span className="team-flag">{getCountryFlag(selectedMatchDetails.team2)}</span>
+              </div>
+            </div>
+
+            <div className="match-details-body">
+              <div className="details-column">
+                <h3>{selectedMatchDetails.team1}</h3>
+                {selectedMatchDetails.goals.filter(g => g.teamId === selectedMatchDetails.team1Id).length > 0 && (
+                  <div className="details-section">
+                    <h4>Goles</h4>
+                    {Object.entries(
+                      selectedMatchDetails.goals
+                        .filter(g => g.teamId === selectedMatchDetails.team1Id)
+                        .reduce((acc, goal) => {
+                          if (!acc[goal.player]) acc[goal.player] = [];
+                          acc[goal.player].push(goal.minute);
+                          return acc;
+                        }, {})
+                    ).map(([player, minutes]) => (
+                      <div key={`goal-${player}`} className="detail-item goal-item">
+                        <span className="icon">⚽</span>
+                        <span className="time">{minutes.join(', ')}</span>
+                        <span className="name">{player}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedMatchDetails.cards.filter(c => c.teamId === selectedMatchDetails.team1Id).length > 0 && (
+                  <div className="details-section">
+                    <h4>Tarjetas</h4>
+                    {selectedMatchDetails.cards.filter(c => c.teamId === selectedMatchDetails.team1Id).map((card, idx) => (
+                      <div key={`card-${idx}`} className="detail-item card-item">
+                        <span className="time">{card.minute}</span>
+                        <span className={`icon card-${card.card}`}>{card.card === 'yellow' ? '🟨' : '🟥'}</span>
+                        <span className="name">{card.player}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="details-column">
+                <h3>{selectedMatchDetails.team2}</h3>
+                {selectedMatchDetails.goals.filter(g => g.teamId === selectedMatchDetails.team2Id).length > 0 && (
+                  <div className="details-section">
+                    <h4>Goles</h4>
+                    {Object.entries(
+                      selectedMatchDetails.goals
+                        .filter(g => g.teamId === selectedMatchDetails.team2Id)
+                        .reduce((acc, goal) => {
+                          if (!acc[goal.player]) acc[goal.player] = [];
+                          acc[goal.player].push(goal.minute);
+                          return acc;
+                        }, {})
+                    ).map(([player, minutes]) => (
+                      <div key={`goal-${player}`} className="detail-item goal-item">
+                        <span className="icon">⚽</span>
+                        <span className="time">{minutes.join(', ')}</span>
+                        <span className="name">{player}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedMatchDetails.cards.filter(c => c.teamId === selectedMatchDetails.team2Id).length > 0 && (
+                  <div className="details-section">
+                    <h4>Tarjetas</h4>
+                    {selectedMatchDetails.cards.filter(c => c.teamId === selectedMatchDetails.team2Id).map((card, idx) => (
+                      <div key={`card-${idx}`} className="detail-item card-item">
+                        <span className="time">{card.minute}</span>
+                        <span className={`icon card-${card.card}`}>{card.card === 'yellow' ? '🟨' : '🟥'}</span>
+                        <span className="name">{card.player}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LiveStreamModal
         match={selectedMatch}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCountryFlag } from '../utils/countryFlags';
+import { getTeamNameES } from '../utils/teamNames';
 
 const BRACKET_STRUCTURE = {
   round32: [
@@ -72,10 +73,11 @@ export default function Bracket({ bracket }) {
 
   const renderTeamRow = (team, score, isWinner, isPending) => {
     const flag = getCountryFlag(team);
+    const teamES = getTeamNameES(team);
     return (
       <div className={`bracket-team-row ${isWinner ? 'winner' : ''} ${isPending ? 'pending' : ''}`}>
         <span className="team-flag">{flag}</span>
-        <span className="team-name">{team}</span>
+        <span className="team-name">{teamES}</span>
         <span className="team-score">{score}</span>
       </div>
     );

@@ -1,4 +1,5 @@
 import { getCountryFlag } from '../utils/countryFlags';
+import { getTeamNameES } from '../utils/teamNames';
 
 function DGCell({ value }) {
   const cls = value > 0 ? 'pos' : value < 0 ? 'neg' : '';
@@ -10,13 +11,14 @@ function TeamRow({ index, team }) {
   const [name, pj, pg, pe, pp, gf, gc, dg, pts] = team;
   const posClass = index === 0 ? 'pos1' : index === 1 ? 'pos2' : '';
   const flag = getCountryFlag(name);
+  const nameES = getTeamNameES(name);
 
   return (
     <tr className={posClass}>
       <td className="team-cell">
         <span className="pos-n">{index + 1}</span>
         <span className="team-flag">{flag}</span>
-        <span className="team-name">{name}</span>
+        <span className="team-name">{nameES}</span>
       </td>
       <td>{pj}</td>
       <DGCell value={dg} />
