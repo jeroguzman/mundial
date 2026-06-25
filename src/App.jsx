@@ -234,6 +234,77 @@ function fillQualifiedTeams(bracket, standings) {
   return filled;
 }
 
+function translateBracketTeam(text) {
+  if (!text) return text;
+
+  const translations = {
+    'Round of 32 1 Winner': 'Ganador Ronda de 32 1',
+    'Round of 32 2 Winner': 'Ganador Ronda de 32 2',
+    'Round of 32 3 Winner': 'Ganador Ronda de 32 3',
+    'Round of 32 4 Winner': 'Ganador Ronda de 32 4',
+    'Round of 32 5 Winner': 'Ganador Ronda de 32 5',
+    'Round of 32 6 Winner': 'Ganador Ronda de 32 6',
+    'Round of 32 7 Winner': 'Ganador Ronda de 32 7',
+    'Round of 32 8 Winner': 'Ganador Ronda de 32 8',
+    'Round of 32 9 Winner': 'Ganador Ronda de 32 9',
+    'Round of 32 10 Winner': 'Ganador Ronda de 32 10',
+    'Round of 32 11 Winner': 'Ganador Ronda de 32 11',
+    'Round of 32 12 Winner': 'Ganador Ronda de 32 12',
+    'Round of 32 13 Winner': 'Ganador Ronda de 32 13',
+    'Round of 32 14 Winner': 'Ganador Ronda de 32 14',
+    'Round of 32 15 Winner': 'Ganador Ronda de 32 15',
+    'Round of 32 16 Winner': 'Ganador Ronda de 32 16',
+    'Round of 16 1 Winner': 'Ganador Ronda de 16 1',
+    'Round of 16 2 Winner': 'Ganador Ronda de 16 2',
+    'Round of 16 3 Winner': 'Ganador Ronda de 16 3',
+    'Round of 16 4 Winner': 'Ganador Ronda de 16 4',
+    'Round of 16 5 Winner': 'Ganador Ronda de 16 5',
+    'Round of 16 6 Winner': 'Ganador Ronda de 16 6',
+    'Round of 16 7 Winner': 'Ganador Ronda de 16 7',
+    'Round of 16 8 Winner': 'Ganador Ronda de 16 8',
+    'Quarterfinal 1 Winner': 'Ganador Cuartos de Final 1',
+    'Quarterfinal 2 Winner': 'Ganador Cuartos de Final 2',
+    'Quarterfinal 3 Winner': 'Ganador Cuartos de Final 3',
+    'Quarterfinal 4 Winner': 'Ganador Cuartos de Final 4',
+    'Semifinal 1 Winner': 'Ganador Semifinal 1',
+    'Semifinal 2 Winner': 'Ganador Semifinal 2',
+    'Group A Winner': 'Ganador Grupo A',
+    'Group B Winner': 'Ganador Grupo B',
+    'Group C Winner': 'Ganador Grupo C',
+    'Group D Winner': 'Ganador Grupo D',
+    'Group E Winner': 'Ganador Grupo E',
+    'Group F Winner': 'Ganador Grupo F',
+    'Group G Winner': 'Ganador Grupo G',
+    'Group H Winner': 'Ganador Grupo H',
+    'Group I Winner': 'Ganador Grupo I',
+    'Group J Winner': 'Ganador Grupo J',
+    'Group K Winner': 'Ganador Grupo K',
+    'Group L Winner': 'Ganador Grupo L',
+    'Group A 2nd Place': 'Segundo Lugar Grupo A',
+    'Group B 2nd Place': 'Segundo Lugar Grupo B',
+    'Group C 2nd Place': 'Segundo Lugar Grupo C',
+    'Group D 2nd Place': 'Segundo Lugar Grupo D',
+    'Group E 2nd Place': 'Segundo Lugar Grupo E',
+    'Group F 2nd Place': 'Segundo Lugar Grupo F',
+    'Group G 2nd Place': 'Segundo Lugar Grupo G',
+    'Group H 2nd Place': 'Segundo Lugar Grupo H',
+    'Group I 2nd Place': 'Segundo Lugar Grupo I',
+    'Group J 2nd Place': 'Segundo Lugar Grupo J',
+    'Group K 2nd Place': 'Segundo Lugar Grupo K',
+    'Group L 2nd Place': 'Segundo Lugar Grupo L',
+    'Third Place Group A/B/C/D/F': 'Tercer Lugar Grupo A/B/C/D/F',
+    'Third Place Group C/D/F/G/H': 'Tercer Lugar Grupo C/D/F/G/H',
+    'Third Place Group C/E/F/H/I': 'Tercer Lugar Grupo C/E/F/H/I',
+    'Third Place Group E/H/I/J/K': 'Tercer Lugar Grupo E/H/I/J/K',
+    'Third Place Group A/E/H/I/J': 'Tercer Lugar Grupo A/E/H/I/J',
+    'Third Place Group E/F/G/I/J': 'Tercer Lugar Grupo E/F/G/I/J',
+    'Third Place Group D/E/I/J/L': 'Tercer Lugar Grupo D/E/I/J/L',
+    'Third Place Group B/E/F/I/J': 'Tercer Lugar Grupo B/E/F/I/J',
+  };
+
+  return translations[text] || text;
+}
+
 function computeBracketFromEvents(events) {
   const bracket = {
     round32: [],
@@ -279,8 +350,8 @@ function computeBracketFromEvents(events) {
     const sb = parseInt(b.score, 10);
 
     const match = {
-      team1: a.team.displayName,
-      team2: b.team.displayName,
+      team1: translateBracketTeam(a.team.displayName),
+      team2: translateBracketTeam(b.team.displayName),
       score1: !isNaN(sa) ? sa : undefined,
       score2: !isNaN(sb) ? sb : undefined,
       winner: completed && !isNaN(sa) && !isNaN(sb) ? (sa > sb ? 1 : sb > sa ? 2 : 0) : null,
